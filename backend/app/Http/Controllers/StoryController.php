@@ -19,16 +19,22 @@ class StoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'content' => 'required|string',
+            'content' => 'nullable|string',
             'type' => 'required|in:text,image',
-            'media_url' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
         ]);
+
+        $mediaUrl = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('stories', 'public');
+            $mediaUrl = 'storage/' . $path;
+        }
 
         $story = Story::create([
             'user_id' => auth()->id(),
             'content' => $request->content,
             'type' => $request->type,
-            'media_url' => $request->media_url,
+            'media_url' => $mediaUrl,
             'expires_at' => Carbon::now()->addHours(24),
         ]);
 

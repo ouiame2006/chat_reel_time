@@ -12,11 +12,13 @@ export default function Login({ setView }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Login.handleSubmit called with:', { email, password });
     setError('');
     setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
+      console.error('Login.handleSubmit error:', err);
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);

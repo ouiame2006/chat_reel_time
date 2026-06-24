@@ -6,6 +6,8 @@ const Profile = () => {
   const { user, updateProfile } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar ? `http://127.0.0.1:8000/${user.avatar}` : null);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +17,12 @@ const Profile = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      await updateProfile({ name, bio });
+      const formData = new FormData();
+      if (name) formData.append('name', name);
+      if (bio !== undefined) formData.append('bio', bio);
+      if (avatarFile) formData.append('avatar', avatarFile);
+
+      await updateProfile(formData);
       setStatus({ type: 'success', message: 'Profile updated successfully!' });
     } catch (error) {
       setStatus({ type: 'error', message: 'Failed to update profile.' });
@@ -31,7 +38,12 @@ const Profile = () => {
     input.onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
-        alert('Profile photo selected!');
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAvatarPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
       }
     };
     input.click();
@@ -42,8 +54,24 @@ const Profile = () => {
       <div className="glass" style={{ width: '100%', maxWidth: '600px', padding: '3rem', borderRadius: 'var(--radius-lg)' }}>
         <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 1.5rem auto' }}>
-             <div className="avatar" style={{ width: '100%', height: '100%', borderRadius: '30px', fontSize: '3rem', color: 'white', background: 'var(--primary)', boxShadow: '0 8px 25px var(--primary-glow)' }}>
-               {user?.name?.[0]?.toUpperCase()}
+             <div className="avatar" style={{ 
+               width: '100%', 
+               height: '100%', 
+               borderRadius: '30px', 
+               fontSize: '3rem', 
+               color: 'white', 
+               background: 'var(--primary)', 
+               boxShadow: '0 8px 25px var(--primary-glow)', 
+               display: 'flex', 
+               alignItems: 'center', 
+               justifyContent: 'center',
+               overflow: 'hidden'
+             }}>
+               {avatarPreview ? (
+                 <img src={avatarPreview} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+               ) : (
+                 user?.name?.[0]?.toUpperCase()
+               )}
              </div>
              <div 
                onClick={handleCameraClick}

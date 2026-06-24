@@ -6,8 +6,11 @@ import {
   Search, Plus, X, Check, Clock, UserPlus,
   ChevronLeft, ChevronRight, Image,
   Smile, Phone, Video as VideoIcon, MoreVertical,
-  Shield, Mail, Calendar,
+  Shield, Mail, Calendar, Send, Mic, Paperclip, Trash2, Bell,
 } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+import PremiumSettingsDashboard from './PremiumSettingsDashboard';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtTime = (iso) => {
@@ -25,13 +28,14 @@ const fmtDay = (iso) => {
 };
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-function Avatar({ name, size = 40, src, online }) {
+function Avatar({ name, size = 40, avatar, online }) {
   const COLORS = ['#db7b9b','#7c3aed','#0ea5e9','#10b981','#f59e0b','#8b5cf6'];
   const color  = COLORS[(name || '?').charCodeAt(0) % COLORS.length];
+  const avatarUrl = avatar ? `http://127.0.0.1:8000/${avatar}` : null;
   return (
     <div style={{ position: 'relative', flexShrink: 0, width: size, height: size }}>
-      {src
-        ? <img src={src} alt={name}
+      {avatarUrl
+        ? <img src={avatarUrl} alt={name}
             style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
         : <div style={{
             width: size, height: size, borderRadius: '50%',
@@ -115,12 +119,12 @@ function UserStoryViewer({ userStories, onClose, onNext, onPrev, hasNext, hasPre
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
-          <Avatar name={current.user?.name} size={36} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{current.user?.name}</div>
-            <div style={{ fontSize: '0.7rem', opacity: 0.65 }}>{fmtTime(current.created_at)}</div>
+            <Avatar name={current.user?.name} size={36} avatar={current.user?.avatar} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{current.user?.name}</div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.65 }}>{fmtTime(current.created_at)}</div>
+            </div>
           </div>
-        </div>
         <button onClick={onClose}
           style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
           <X size={24} />
@@ -132,7 +136,7 @@ function UserStoryViewer({ userStories, onClose, onNext, onPrev, hasNext, hasPre
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 1.5rem',
       }}>
         {current.type === 'image' && current.media_url
-          ? <img src={current.media_url} alt=""
+          ? <img src={current.media_url.startsWith('http') ? current.media_url : `http://127.0.0.1:8000/${current.media_url}`} alt=""
               style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: 16, objectFit: 'contain' }} />
           : <div style={{
               color: '#fff', fontSize: '2rem', fontWeight: 800,
@@ -217,9 +221,9 @@ function StoriesBar({ groupedStories, currentUser, onOpenGroup, onAddClick, onUs
                 cursor: 'pointer',
               }}>
               {latest.type === 'image' && latest.media_url
-                ? <img src={latest.media_url} alt=""
+                ? <img src={latest.media_url.startsWith('http') ? latest.media_url : `http://127.0.0.1:8000/${latest.media_url}`} alt=""
                     style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                : <Avatar name={group.userName} size={56} />
+                : <Avatar name={group.userName} size={56} avatar={group.stories[0].user?.avatar} />
               }
             </div>
             <p
@@ -306,13 +310,22 @@ function UserProfileModal({ profileUser, invStatus, pendingReceived, onClose, on
             position: 'absolute', bottom: -34, left: 24,
             width: 72, height: 72, borderRadius: '50%',
             border: '4px solid #fff',
-            background: `linear-gradient(135deg,${color},${color}bb)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 900, fontSize: '1.75rem',
             boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            userSelect: 'none',
+            overflow: 'hidden',
           }}>
-            {profileUser.name[0].toUpperCase()}
+            {profileUser.avatar ? (
+              <img src={`http://127.0.0.1:8000/${profileUser.avatar}`} alt={profileUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{
+                width: '100%', height: '100%',
+                background: `linear-gradient(135deg,${color},${color}bb)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 900, fontSize: '1.75rem',
+                userSelect: 'none',
+              }}>
+                {profileUser.name[0].toUpperCase()}
+              </div>
+            )}
           </div>
           <div style={{
             position: 'absolute', bottom: -34 + 52, left: 24 + 52,
@@ -457,7 +470,7 @@ function InvitationRequestItem({ invitation, onAccept, onReject, onViewProfile, 
       transition: 'all 0.2s ease',
     }}>
       <div onClick={() => onViewProfile(sender)} style={{ cursor: 'pointer' }}>
-        <Avatar name={sender?.name} size={48} online={isOnline} />
+        <Avatar name={sender?.name} size={48} avatar={sender?.avatar} online={isOnline} />
       </div>
       
       <div style={{ flex: 1, minWidth: 0 }} onClick={() => onViewProfile(sender)} style={{ cursor: 'pointer' }}>
@@ -562,7 +575,7 @@ function AllPeopleItem({ user, onInvite, onReject, invStatus, pendingReceived, o
     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fdf2f4'}
     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
     >
-      <Avatar name={user.name} size={36} online={isOnline} />
+      <Avatar name={user.name} size={36} avatar={user.avatar} online={isOnline} />
       
       <div style={{ flex: 1, minWidth: 0 }}>
         <h4 style={{
@@ -732,7 +745,7 @@ function UserCard({ user, invStatus, pendingReceived, onSendInvite, onAccept, on
       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
     }}
     >
-      <Avatar name={user.name} size={64} online={isOnline} />
+      <Avatar name={user.name} size={64} avatar={user.avatar} online={isOnline} />
       
       <div style={{ textAlign: 'center' }}>
         <h3 style={{
@@ -831,7 +844,7 @@ function UserCard({ user, invStatus, pendingReceived, onSendInvite, onAccept, on
 }
 
 // ── MAIN DASHBOARD ───────────────────────────────────────────────────────────
-export default function Dashboard() {
+export default function Dashboard({ onOpenSettings }) {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('directory');
 
@@ -855,6 +868,20 @@ export default function Dashboard() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [profileModal, setProfileModal] = useState(null);
   const [processingIds, setProcessingIds] = useState(new Set());
+  
+  // New features states
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [recording, setRecording] = useState(false);
+  const [inCall, setInCall] = useState(false);
+  const [callType, setCallType] = useState(null); // 'audio' or 'video'
+  const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
+  
+  // New state for dropdown menu and profile modal
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const ping = () => axios.post('/api/user/ping').catch(() => {});
@@ -870,6 +897,22 @@ export default function Dashboard() {
     return () => {
       clearInterval(pingId);
       clearInterval(pollId);
+    };
+  }, []);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -954,27 +997,6 @@ export default function Dashboard() {
     finally { setLoadingMsgs(false); }
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!msgInput.trim() || !activeUser) return;
-    if (invStatus[activeUser.id] !== 'accepted') return;
-    const text = msgInput;
-    setMsgInput('');
-    const optimistic = {
-      id: `opt-${Date.now()}`, user_id: user.id, receiver_id: activeUser.id,
-      message: text, is_read: false, created_at: new Date().toISOString(), user,
-    };
-    setMessages(prev => [...prev, optimistic]);
-    try {
-      const { data } = await axios.post('/api/messages', { receiver_id: activeUser.id, message: text });
-      setMessages(prev => prev.map(m => m.id === optimistic.id ? data.message : m));
-      loadConversations();
-    } catch {
-      setMessages(prev => prev.filter(m => m.id !== optimistic.id));
-      setMsgInput(text);
-    }
-  };
-
   const sendInvite = async (userId) => {
     try {
       await axios.post('/api/invitations', { receiver_id: userId });
@@ -1026,7 +1048,40 @@ export default function Dashboard() {
     }
   };
 
+  // New Features Handlers
+  const addEmoji = (emoji) => {
+    setMsgInput(prev => prev + emoji.native);
+    setShowEmojiPicker(false);
+  };
+
   const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length) {
+      setAttachments(prev => [
+        ...prev,
+        ...files.map(file => ({
+          file,
+          preview: URL.createObjectURL(file)
+        }))
+      ]);
+    }
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const startCall = async (type) => {
+    setCallType(type);
+    setInCall(true);
+  };
+
+  const endCall = () => {
+    setInCall(false);
+    setCallType(null);
+  };
+
+  const handleStoryFileSelect = (e) => {
     const f = e.target.files[0];
     if (!f) return;
     setStoryFile(f);
@@ -1037,15 +1092,67 @@ export default function Dashboard() {
     if (!storyText.trim() && !storyFile) return;
     setPostingStory(true);
     try {
-      const { data } = await axios.post('/api/stories', {
-        content: storyText || ' ',
-        type: storyFile?.type?.startsWith('image/') ? 'image' : 'text',
-        media_url: storyPreview || null,
+      const formData = new FormData();
+      formData.append('content', storyText || '');
+      formData.append('type', storyFile ? 'image' : 'text');
+      if (storyFile) {
+        formData.append('image', storyFile);
+      }
+
+      const { data } = await axios.post('/api/stories', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       setStories(prev => [data, ...prev]);
-      setStoryText(''); setStoryFile(null); setStoryPreview(null);
-    } catch {}
-    finally { setPostingStory(false); }
+      setStoryText('');
+      setStoryFile(null);
+      setStoryPreview(null);
+    } catch (err) {
+      console.error('Error posting story:', err);
+    } finally {
+      setPostingStory(false);
+    }
+  };
+
+  // Update sendMessage to handle attachments too
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!msgInput.trim() && attachments.length === 0) return;
+    if (invStatus[activeUser.id] !== 'accepted') return;
+    
+    // Create optimistic message
+    const optimistic = {
+      id: `opt-${Date.now()}`, 
+      user_id: user.id, 
+      receiver_id: activeUser.id,
+      message: msgInput, 
+      attachments: attachments.map(a => ({ name: a.file.name, preview: a.preview, type: a.file.type })),
+      is_read: false, 
+      created_at: new Date().toISOString(), 
+      user,
+    };
+    
+    setMessages(prev => [...prev, optimistic]);
+    setMsgInput('');
+    setAttachments([]);
+    
+    try {
+      const formData = new FormData();
+      formData.append('receiver_id', activeUser.id);
+      formData.append('message', msgInput);
+      attachments.forEach(a => formData.append('attachments', a.file));
+
+      const { data } = await axios.post('/api/messages', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setMessages(prev => prev.map(m => m.id === optimistic.id ? data.message : m));
+      loadConversations();
+    } catch {
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+      setMsgInput(msgInput);
+      setAttachments(attachments);
+    }
   };
   const deleteStory = async (id) => {
     await axios.delete(`/api/stories/${id}`).catch(() => {});
@@ -1075,6 +1182,10 @@ export default function Dashboard() {
         .fi { animation: fi 0.25s ease both; }
         @keyframes modalIn { from{opacity:0;transform:scale(0.9) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.2); }
+        }
         input, textarea { font-family: inherit; }
       `}</style>
 
@@ -1089,6 +1200,215 @@ export default function Dashboard() {
           onReject={(inv) => rejectInvite(inv)}
           onOpenChat={(u) => openChat(u)}
         />
+      )}
+
+      {inCall && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'linear-gradient(135deg, #db7b9b, #e0a8bb)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <Avatar name={activeUser?.name} size={120} avatar={activeUser?.avatar} online={activeUser?.is_online} />
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+            {activeUser?.name}
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', marginBottom: '2rem' }}>
+            {callType === 'audio' ? 'Audio Call…' : 'Video Call…'}
+          </p>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={endCall}
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.2s ease',
+                boxShadow: '0 4px 16px rgba(239,68,68,0.4)',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Phone size={28} style={{ transform: 'rotate(135deg)' }} />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Chat User Profile Modal */}
+      {isProfileModalOpen && activeUser && (
+        <div 
+          onClick={() => setIsProfileModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(17, 24, 39, 0.45)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            zIndex: 9999,
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: '1.5rem',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 32px 80px rgba(219,123,155,0.18), 0 4px 20px rgba(0,0,0,0.1)',
+              overflow: 'hidden',
+              animation: 'modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both',
+            }}
+          >
+            {/* Header with close button */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid #fce7f3',
+            }}>
+              <h3 style={{ fontWeight: 800, fontSize: '1.125rem', color: '#111827' }}>
+                Profile
+              </h3>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '0.75rem',
+                  background: '#fdf2f4',
+                  border: 'none',
+                  color: '#db7b9b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#db7b9b';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#fdf2f4';
+                  e.currentTarget.style.color = '#db7b9b';
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* User info */}
+            <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+              <Avatar name={activeUser.name} size={96} avatar={activeUser.avatar} online={activeUser.is_online} />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#111827', marginTop: '1.25rem', marginBottom: '0.25rem' }}>
+                {activeUser.name}
+              </h2>
+              <p style={{
+                fontSize: '0.8rem',
+                color: activeUser.is_online ? '#22c55e' : '#9ca3af',
+                fontWeight: 700,
+                background: activeUser.is_online ? '#f0fdf4' : '#f3f4f6',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}>
+                <span style={{
+                  width: '0.5rem',
+                  height: '0.5rem',
+                  borderRadius: '50%',
+                  background: activeUser.is_online ? '#22c55e' : '#9ca3af',
+                }} />
+                {activeUser.is_online ? 'Online' : 'Offline'}
+              </p>
+              
+              {activeUser.bio && (
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280',
+                  lineHeight: '1.6',
+                  marginTop: '1rem',
+                  padding: '0.875rem',
+                  background: '#fdf2f4',
+                  borderRadius: '0.875rem',
+                  border: '1px solid #fce7f3',
+                }}>
+                  {activeUser.bio}
+                </p>
+              )}
+            </div>
+            
+            {/* Details section */}
+            <div style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
+              <h4 style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                color: '#9ca3af',
+                marginBottom: '0.75rem',
+                letterSpacing: '0.07em',
+              }}>
+                Details
+              </h4>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.875rem',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.875rem 1rem',
+                  background: '#fdf2f4',
+                  borderRadius: '0.875rem',
+                  border: '1px solid #fce7f3',
+                }}>
+                  <Mail size={18} color="#db7b9b" />
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.125rem' }}>Email</p>
+                    <p style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>{activeUser.email}</p>
+                  </div>
+                </div>
+                
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.875rem 1rem',
+                  background: '#fdf2f4',
+                  borderRadius: '0.875rem',
+                  border: '1px solid #fce7f3',
+                }}>
+                  <Calendar size={18} color="#db7b9b" />
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.125rem' }}>Joined</p>
+                    <p style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>
+                      {activeUser.created_at ? new Date(activeUser.created_at).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {viewingGroupIdx !== null && groupedStories[viewingGroupIdx] && (
@@ -1109,22 +1429,32 @@ export default function Dashboard() {
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           padding: '1rem 0', gap: 6,
         }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#db7b9b,#e0a8bb)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom: 8 }}>
-            <MessageSquare size={18} color="#fff" fill="#fff" />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: activeTab === 'settings' ? 'linear-gradient(135deg,#1e3a8a,#3b82f6)' : 'linear-gradient(135deg,#db7b9b,#e0a8bb)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom: 8 }}>
+            {activeTab === 'settings' ? (
+              <Settings size={18} color="#fff" fill="#fff" />
+            ) : (
+              <MessageSquare size={18} color="#fff" fill="#fff" />
+            )}
           </div>
 
           {[
             { id:'chats',     Icon: MessageSquare, label:'Chats',     badge: totalUnread },
             { id:'directory', Icon: Users,         label:'Directory', badge: pendingReceived.length },
             { id:'stories',   Icon: BookOpen,      label:'Stories' },
-            { id:'settings',  Icon: Settings,      label:'Settings' },
-          ].map(({ id, Icon, label, badge }) => (
-            <button key={id} title={label} onClick={() => { setActiveTab(id); setActiveUser(null); }}
+            { id:'settings',  Icon: Settings,      label:'Settings', action: onOpenSettings },
+          ].map(({ id, Icon, label, badge, action }) => (
+            <button key={id} title={label} onClick={() => { 
+              if (action) {
+                action();
+              } else {
+                setActiveTab(id); setActiveUser(null); 
+              }
+            }}
               style={{
                 position:'relative', width:42, height:42, borderRadius:10,
                 border:'none', cursor:'pointer',
-                background: activeTab===id ? '#fdf2f4' : 'transparent',
-                color: activeTab===id ? '#db7b9b' : '#9ca3af',
+                background: activeTab===id ? (id === 'settings' ? '#e0f2fe' : '#fdf2f4') : 'transparent',
+                color: activeTab===id ? (id === 'settings' ? '#1e3a8a' : '#db7b9b') : '#9ca3af',
                 display:'flex', alignItems:'center', justifyContent:'center',
                 transition:'all 0.15s',
               }}>
@@ -1153,7 +1483,7 @@ export default function Dashboard() {
 
         <div style={{ width: 300, flexShrink:0, background:'#fff', borderRight:'1px solid #fce7f3', display:'flex', flexDirection:'column', overflow:'hidden' }}>
           <div style={{ padding:'1.25rem 1rem 0.75rem', borderBottom:'1px solid #fce7f3' }}>
-            <h2 style={{ fontSize:'1.1rem', fontWeight:900, color:'#db7b9b', marginBottom:'0.75rem' }}>
+            <h2 style={{ fontSize:'1.1rem', fontWeight:900, color: activeTab === 'settings' ? '#1e3a8a' : '#db7b9b', marginBottom:'0.75rem' }}>
               {{ chats:'Chats', directory:'Directory', stories:'Stories', settings:'Settings' }[activeTab]}
             </h2>
             {(activeTab === 'chats' || activeTab === 'directory') && (
@@ -1191,7 +1521,7 @@ export default function Dashboard() {
                     borderLeft: activeUser?.id === u.id ? '3px solid #db7b9b' : '3px solid transparent',
                     transition:'background 0.12s', opacity: invStatus[u.id] !== 'accepted' ? 0.6 : 1,
                   }}>
-                  <Avatar name={u.name} size={42} online={u.is_online} />
+                  <Avatar name={u.name} size={42} avatar={u.avatar} online={u.is_online} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <span style={{ fontWeight:700, fontSize:'0.88rem', color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.name}</span>
@@ -1338,7 +1668,7 @@ export default function Dashboard() {
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={handleFileSelect}
+                        onChange={handleStoryFileSelect}
                         style={{ display: 'none' }}
                       />
                     </label>
@@ -1405,7 +1735,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       {story.type === 'image' && story.media_url && (
-                        <img src={story.media_url} alt="" style={{
+                        <img src={story.media_url.startsWith('http') ? story.media_url : `http://127.0.0.1:8000/${story.media_url}`} alt="" style={{
                           width: '100%',
                           borderRadius: '0.75rem',
                           maxHeight: '300px',
@@ -1421,396 +1751,672 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {activeTab === 'directory' && (
-            <>
-              <StoriesBar
-                groupedStories={groupedStories}
-                currentUser={user}
-                onOpenGroup={(idx) => setViewingGroupIdx(idx)}
-                onAddClick={() => setActiveTab('stories')}
-                onUserClick={(uid) => {
-                  const user = allUsers.find(u => u.id === uid);
-                  if (user) setProfileModal(user);
-                }}
-              />
-              <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#111827', marginBottom: '0.375rem' }}>
-                    People Directory
-                  </h2>
-                  <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                    {allUsers.length} registered users · Connect to start chatting
-                  </p>
-                </div>
-                
-                <div style={{ marginBottom: '1rem', padding: '0 0.25rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.07em' }}>
-                    All Users
-                  </span>
-                </div>
-                
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  gap: '1rem',
-                }}>
-                  {loadingUsers ? (
-                    Array.from({ length: 6 }).map((_, idx) => (
-                      <div key={idx} style={{
-                        background: '#fff',
-                        borderRadius: '1.25rem',
-                        padding: '1.5rem',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                      }}>
-                        <div style={{
-                          width: '64px',
-                          height: '64px',
-                          borderRadius: '50%',
-                          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 1.5s infinite',
-                        }} />
-                        <div style={{
-                          width: '100px',
-                          height: '16px',
-                          borderRadius: '0.5rem',
-                          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 1.5s infinite',
-                        }} />
-                        <div style={{
-                          width: '80px',
-                          height: '12px',
-                          borderRadius: '0.5rem',
-                          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 1.5s infinite',
-                        }} />
-                        <div style={{
-                          width: '100%',
-                          height: '32px',
-                          borderRadius: '0.875rem',
-                          background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 1.5s infinite',
-                        }} />
-                      </div>
-                    ))
-                  ) : filteredUsers.map(u => (
-                    <UserCard
-                      key={u.id}
-                      user={u}
-                      invStatus={invStatus}
-                      pendingReceived={pendingReceived}
-                      onSendInvite={sendInvite}
-                      onAccept={acceptInvite}
-                      onReject={rejectInvite}
-                      onViewProfile={(user) => setProfileModal(user)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'chats' && activeUser && (
-            <>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.875rem',
-                padding: '1rem 1.5rem',
-                background: '#fff',
-                borderBottom: '1px solid #fce7f3',
-              }}>
-                <button
-                  onClick={() => setActiveTab('directory')}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '0.75rem',
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#9ca3af',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Main Chat Content */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {activeTab === 'directory' && (
+              <>
+                <StoriesBar
+                  groupedStories={groupedStories}
+                  currentUser={user}
+                  onOpenGroup={(idx) => setViewingGroupIdx(idx)}
+                  onAddClick={() => setActiveTab('stories')}
+                  onUserClick={(uid) => {
+                    const user = allUsers.find(u => u.id === uid);
+                    if (user) setProfileModal(user);
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fdf2f4';
-                    e.currentTarget.style.color = '#db7b9b';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#9ca3af';
-                  }}
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => setProfileModal(activeUser)}>
-                  <Avatar name={activeUser.name} size={40} online={activeUser.is_online} />
-                  <div>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>{activeUser.name}</h3>
-                    <p style={{ fontSize: '0.75rem', color: activeUser.is_online ? '#22c55e' : '#9ca3af' }}>
-                      {activeUser.is_online ? 'Online' : 'Offline'}
+                />
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#111827', marginBottom: '0.375rem' }}>
+                      People Directory
+                    </h2>
+                    <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>
+                      {allUsers.length} registered users · Connect to start chatting
                     </p>
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.375rem' }}>
-                  <button style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '0.75rem',
-                    border: 'none',
-                    background: '#fdf2f4',
-                    color: '#db7b9b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Phone size={18} />
-                  </button>
-                  <button style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '0.75rem',
-                    border: 'none',
-                    background: '#fdf2f4',
-                    color: '#db7b9b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <VideoIcon size={18} />
-                  </button>
-                  <button style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '0.75rem',
-                    border: 'none',
-                    background: '#fdf2f4',
-                    color: '#db7b9b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <MoreVertical size={18} />
-                  </button>
-                </div>
-              </div>
-              
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}>
-                {loadingMsgs ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width:'24px', height:'24px', borderRadius:'50%', border:'3px solid #fda4af', borderTopColor:'#db7b9b', animation:'spin 0.8s linear infinite' }} />
+                  
+                  <div style={{ marginBottom: '1rem', padding: '0 0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.07em' }}>
+                      All Users
+                    </span>
                   </div>
-                ) : messages.length === 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                    Say hi! Start a conversation
-                  </div>
-                ) : (
-                  messages.map(msg => {
-                    const isSent = msg.user_id === user.id;
-                    return (
-                      <div key={msg.id} className="fi" style={{
-                        display: 'flex',
-                        justifyContent: isSent ? 'flex-end' : 'flex-start',
-                      }}>
-                        <div style={{
-                          maxWidth: '65%',
-                          background: isSent ? 'linear-gradient(135deg,#db7b9b,#e0a8bb)' : '#fff',
-                          color: isSent ? '#fff' : '#111827',
-                          padding: '0.75rem 1rem',
-                          borderRadius: isSent ? '1.25rem 1.25rem 0.375rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.375rem',
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                    gap: '1rem',
+                  }}>
+                    {loadingUsers ? (
+                      Array.from({ length: 6 }).map((_, idx) => (
+                        <div key={idx} style={{
+                          background: '#fff',
+                          borderRadius: '1.25rem',
+                          padding: '1.5rem',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.75rem',
                         }}>
-                          <p style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>{msg.message}</p>
-                          <p style={{ fontSize: '0.7rem', color: isSent ? 'rgba(255,255,255,0.75)' : '#9ca3af', marginTop: '0.25rem', textAlign: 'right' }}>
-                            {fmtTime(msg.created_at)}
-                          </p>
+                          <div style={{
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                          }} />
+                          <div style={{
+                            width: '100px',
+                            height: '16px',
+                            borderRadius: '0.5rem',
+                            background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                          }} />
+                          <div style={{
+                            width: '80px',
+                            height: '12px',
+                            borderRadius: '0.5rem',
+                            background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                          }} />
+                          <div style={{
+                            width: '100%',
+                            height: '32px',
+                            borderRadius: '0.875rem',
+                            background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                          }} />
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              
-              <div style={{
-                padding: '1rem 1.5rem',
-                background: '#fff',
-                borderTop: '1px solid #fce7f3',
-              }}>
-                <form onSubmit={sendMessage} style={{ display: 'flex', gap: '0.625rem' }}>
-                  <button type="button" style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '0.875rem',
-                    border: 'none',
-                    background: '#fdf2f4',
-                    color: '#db7b9b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Smile size={20} />
-                  </button>
-                  <input
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                    placeholder="Type a message..."
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem 1rem',
-                      borderRadius: '0.875rem',
-                      border: '1px solid #fce7f3',
-                      background: '#fcfcff',
-                      fontSize: '0.9rem',
-                      outline: 'none',
-                    }}
-                  />
-                  <button type="submit" disabled={!msgInput.trim()} style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '0.875rem',
-                    border: 'none',
-                    background: !msgInput.trim() ? '#f3f4f6' : 'linear-gradient(135deg,#db7b9b,#e0a8bb)',
-                    color: !msgInput.trim() ? '#9ca3af' : '#fff',
-                    cursor: !msgInput.trim() ? 'default' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                  }}>
-                    <Send size={18} />
-                  </button>
-                </form>
-              </div>
-            </>
-          )}
+                      ))
+                    ) : filteredUsers.map(u => (
+                      <UserCard
+                        key={u.id}
+                        user={u}
+                        invStatus={invStatus}
+                        pendingReceived={pendingReceived}
+                        onSendInvite={sendInvite}
+                        onAccept={acceptInvite}
+                        onReject={rejectInvite}
+                        onViewProfile={(user) => setProfileModal(user)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
-          {activeTab === 'chats' && !activeUser && (
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#9ca3af',
-            }}>
-              <MessageSquare size={64} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Select a chat</h3>
-              <p style={{ fontSize: '0.875rem' }}>Choose a conversation from the sidebar</p>
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div style={{ flex: 1, padding: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#111827', marginBottom: '1.5rem' }}>Settings</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px' }}>
+            {activeTab === 'chats' && activeUser && (
+              <>
                 <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.875rem',
+                  padding: '1rem 1.5rem',
                   background: '#fff',
-                  borderRadius: '1.25rem',
-                  padding: '1.5rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  borderBottom: '1px solid #fce7f3',
                 }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#111827', marginBottom: '0.75rem' }}>Profile</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                    <Avatar name={user?.name} size={64} />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.95rem', fontWeight: 600, color: '#111827' }}>{user?.name}</p>
-                      <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>{user?.email}</p>
+                  <button
+                    onClick={() => setActiveTab('directory')}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#9ca3af',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#fdf2f4';
+                      e.currentTarget.style.color = '#db7b9b';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#9ca3af';
+                    }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => setIsProfileModalOpen(true)}>
+                    <Avatar name={activeUser.name} size={40} avatar={activeUser.avatar} online={activeUser.is_online} />
+                    <div>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>{activeUser.name}</h3>
+                      <p style={{ fontSize: '0.75rem', color: activeUser.is_online ? '#22c55e' : '#9ca3af' }}>
+                        {activeUser.is_online ? 'Online' : 'Offline'}
+                      </p>
                     </div>
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '0.625rem 1rem',
-                    borderRadius: '0.75rem',
-                    border: '1px solid #e0a8bb',
-                    background: '#fdf2f4',
-                    color: '#db7b9b',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                  }}>
-                    Edit Profile
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.375rem', position: 'relative' }} ref={menuRef}>
+                    <button onClick={() => startCall('audio')} style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: '#fdf2f4',
+                      color: '#db7b9b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }} onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#db7b9b';
+                      e.currentTarget.style.color = '#fff';
+                    }} onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fdf2f4';
+                      e.currentTarget.style.color = '#db7b9b';
+                    }}>
+                      <Phone size={18} />
+                    </button>
+                    <button onClick={() => startCall('video')} style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: '#fdf2f4',
+                      color: '#db7b9b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }} onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#db7b9b';
+                      e.currentTarget.style.color = '#fff';
+                    }} onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fdf2f4';
+                      e.currentTarget.style.color = '#db7b9b';
+                    }}>
+                      <VideoIcon size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                      style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: isMenuOpen ? 'linear-gradient(135deg,#db7b9b,#e0a8bb)' : '#fdf2f4',
+                      color: isMenuOpen ? '#fff' : '#db7b9b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }} onMouseEnter={(e) => {
+                      if (!isMenuOpen) {
+                        e.currentTarget.style.background = '#db7b9b';
+                        e.currentTarget.style.color = '#fff';
+                      }
+                    }} onMouseLeave={(e) => {
+                      if (!isMenuOpen) {
+                        e.currentTarget.style.background = '#fdf2f4';
+                        e.currentTarget.style.color = '#db7b9b';
+                      }
+                    }}>
+                      <MoreVertical size={18} />
+                    </button>
+                    
+                    {/* Dropdown menu */}
+                    {isMenuOpen && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 0.5rem)',
+                        right: 0,
+                        background: '#fff',
+                        borderRadius: '1rem',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                        padding: '0.5rem',
+                        minWidth: '200px',
+                        border: '1px solid #fce7f3',
+                        animation: 'fi 0.2s ease both',
+                        zIndex: 100,
+                      }}>
+                        <button 
+                          onClick={() => { setIsMenuOpen(false); }} 
+                          style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.75rem',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#111827',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fdf2f4';
+                            e.currentTarget.style.color = '#db7b9b';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#111827';
+                          }}
+                        >
+                          <Bell size={18} />
+                          Mute Notifications
+                        </button>
+                        <button 
+                          onClick={() => { setIsMenuOpen(false); }} 
+                          style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.75rem',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#111827',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fdf2f4';
+                            e.currentTarget.style.color = '#db7b9b';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#111827';
+                          }}
+                        >
+                          <Shield size={18} />
+                          Block User
+                        </button>
+                        <button 
+                          onClick={() => { setIsMenuOpen(false); }} 
+                          style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.75rem',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#111827',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fdf2f4';
+                            e.currentTarget.style.color = '#db7b9b';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#111827';
+                          }}
+                        >
+                          <Trash2 size={18} />
+                          Clear Chat
+                        </button>
+                        <button 
+                          onClick={() => { setIsMenuOpen(false); }} 
+                          style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.75rem',
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#ef4444',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fee2e2';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          <Trash2 size={18} />
+                          Delete Chat
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={{
-                  background: '#fff',
-                  borderRadius: '1.25rem',
+                  flex: 1,
+                  overflowY: 'auto',
                   padding: '1.5rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
                 }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#111827', marginBottom: '0.75rem' }}>Preferences</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.9rem', color: '#374151' }}>Notifications</span>
-                      <button style={{
-                        width: '44px',
-                        height: '24px',
-                        borderRadius: '9999px',
-                        background: '#10b981',
-                        border: 'none',
-                        cursor: 'pointer',
-                        position: 'relative',
-                      }}>
-                        <span style={{
-                          position: 'absolute',
-                          right: '2px',
-                          top: '2px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#fff',
-                        }} />
-                      </button>
+                  {loadingMsgs ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width:'24px', height:'24px', borderRadius:'50%', border:'3px solid #fda4af', borderTopColor:'#db7b9b', animation:'spin 0.8s linear infinite' }} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.9rem', color: '#374151' }}>Dark Mode</span>
-                      <button style={{
-                        width: '44px',
-                        height: '24px',
-                        borderRadius: '9999px',
-                        background: '#e5e7eb',
-                        border: 'none',
-                        cursor: 'pointer',
-                        position: 'relative',
-                      }}>
-                        <span style={{
-                          position: 'absolute',
-                          left: '2px',
-                          top: '2px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#fff',
-                        }} />
-                      </button>
+                  ) : messages.length === 0 ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                      Say hi! Start a conversation
                     </div>
-                  </div>
+                  ) : (
+                    messages.map(msg => {
+                      const isSent = msg.user_id === user.id;
+                      return (
+                        <div key={msg.id} className="fi" style={{
+                          display: 'flex',
+                          justifyContent: isSent ? 'flex-end' : 'flex-start',
+                        }}>
+                          <div style={{
+                            maxWidth: '65%',
+                            background: isSent ? 'linear-gradient(135deg,#db7b9b,#e0a8bb)' : '#fff',
+                            color: isSent ? '#fff' : '#111827',
+                            padding: '0.75rem 1rem',
+                            borderRadius: isSent ? '1.25rem 1.25rem 0.375rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.375rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}>
+                            <p style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>{msg.message}</p>
+                            <p style={{ fontSize: '0.7rem', color: isSent ? 'rgba(255,255,255,0.75)' : '#9ca3af', marginTop: '0.25rem', textAlign: 'right' }}>
+                              {fmtTime(msg.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
+                
+                {/* Attachments preview */}
+                {attachments.length > 0 && (
+                  <div style={{
+                    padding: '0.75rem 1.5rem',
+                    background: '#fff',
+                    display: 'flex',
+                    gap: '0.75rem',
+                    overflowX: 'auto',
+                  }}>
+                    {attachments.map((att, idx) => (
+                      <div key={idx} style={{
+                        position: 'relative',
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '0.75rem',
+                        overflow: 'hidden',
+                        border: '1px solid #fce7f3',
+                        background: '#fdf2f4',
+                      }}>
+                        {att.file.type.startsWith('image/') ? (
+                          <img src={att.preview} alt={att.file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            fontSize: '0.7rem',
+                            color: '#9ca3af',
+                            padding: '0.5rem',
+                            textAlign: 'center',
+                          }}>
+                            <Paperclip size={24} style={{ marginBottom: '0.25rem' }} />
+                            {att.file.name.length > 15 ? `${att.file.name.slice(0, 12)}...` : att.file.name}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(idx)}
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ef4444',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                          }}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div style={{
+                  padding: '1rem 1.5rem',
+                  background: '#fff',
+                  borderTop: '1px solid #fce7f3',
+                  position: 'relative',
+                }}>
+                  {/* Emoji Picker */}
+                  {showEmojiPicker && (
+                    <div ref={emojiPickerRef} style={{
+                      position: 'absolute',
+                      bottom: 'calc(100% + 10px)',
+                      left: '1.5rem',
+                      zIndex: 100,
+                    }}>
+                      <Picker
+                        data={data}
+                        onEmojiSelect={addEmoji}
+                        theme="light"
+                        previewPosition="none"
+                      />
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                  />
+                  {recording && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.75rem',
+                      padding: '0.5rem 1rem',
+                      background: '#fef2f2',
+                      borderRadius: '0.75rem',
+                      border: '1px solid #fecdd3',
+                    }}>
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        backgroundColor: '#ef4444',
+                        borderRadius: '50%',
+                        animation: 'pulse 1.5s infinite',
+                      }} />
+                      <span style={{
+                        fontSize: '0.8rem',
+                        color: '#991b1b',
+                        fontWeight: 600,
+                      }}>
+                        Recording…
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setRecording(false)}
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: '0.75rem',
+                          color: '#ef4444',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Stop
+                      </button>
+                    </div>
+                  )}
+                  <form onSubmit={sendMessage} style={{ display: 'flex', gap: '0.625rem' }}>
+                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '0.875rem',
+                      border: 'none',
+                      background: showEmojiPicker ? 'linear-gradient(135deg,#db7b9b,#e0a8bb)' : '#fdf2f4',
+                      color: showEmojiPicker ? '#fff' : '#db7b9b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }} onMouseEnter={(e) => {
+                      if (!showEmojiPicker) {
+                        e.currentTarget.style.background = '#db7b9b';
+                        e.currentTarget.style.color = '#fff';
+                      }
+                    }} onMouseLeave={(e) => {
+                      if (!showEmojiPicker) {
+                        e.currentTarget.style.background = '#fdf2f4';
+                        e.currentTarget.style.color = '#db7b9b';
+                      }
+                    }}>
+                      <Smile size={20} />
+                    </button>
+                    <button type="button" onClick={() => fileInputRef.current.click()} style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '0.875rem',
+                      border: 'none',
+                      background: '#fdf2f4',
+                      color: '#db7b9b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }} onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#db7b9b';
+                      e.currentTarget.style.color = '#fff';
+                    }} onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fdf2f4';
+                      e.currentTarget.style.color = '#db7b9b';
+                    }}>
+                      <Paperclip size={20} />
+                    </button>
+                    <input
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                      placeholder="Type a message..."
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.875rem',
+                        border: '1px solid #fce7f3',
+                        background: '#fcfcff',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                      }}
+                    />
+                    {msgInput.trim() || attachments.length > 0 ? (
+                      <button type="submit" style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '0.875rem',
+                        border: 'none',
+                        background: 'linear-gradient(135deg,#db7b9b,#e0a8bb)',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                      }} onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(219,123,155,0.3)';
+                      }} onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}>
+                        <Send size={18} />
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => setRecording(!recording)} style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '0.875rem',
+                        border: 'none',
+                        background: recording ? '#ef4444' : '#fdf2f4',
+                        color: recording ? '#fff' : '#db7b9b',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                      }} onMouseEnter={(e) => {
+                        if (!recording) {
+                          e.currentTarget.style.background = '#db7b9b';
+                          e.currentTarget.style.color = '#fff';
+                        }
+                      }} onMouseLeave={(e) => {
+                        if (!recording) {
+                          e.currentTarget.style.background = '#fdf2f4';
+                          e.currentTarget.style.color = '#db7b9b';
+                        }
+                      }}>
+                        <Mic size={20} />
+                      </button>
+                    )}
+                  </form>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'chats' && !activeUser && (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#9ca3af',
+              }}>
+                <MessageSquare size={64} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Select a chat</h3>
+                <p style={{ fontSize: '0.875rem' }}>Choose a conversation from the sidebar</p>
               </div>
-            </div>
+            )}
+          </div>
+
+          {activeTab === 'settings' && (
+            <PremiumSettingsDashboard 
+              onBack={() => setActiveTab('directory')} 
+            />
           )}
         </div>
       </div>

@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout',      [AuthController::class, 'logout']);
     Route::get('/user',         [AuthController::class, 'getUser']);
     Route::post('/user/update', [AuthController::class, 'updateProfile']);
+    Route::post('/user/password', [AuthController::class, 'updatePassword']);
+    Route::post('/user/preferences', [AuthController::class, 'togglePreferences']);
     Route::post('/user/ping',   [AuthController::class, 'ping']);          // heartbeat
 
     // ── Users directory ───────────────────────────────────────────────────────

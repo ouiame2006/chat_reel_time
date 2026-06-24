@@ -20,6 +20,11 @@ class User extends Authenticatable
         'bio',
         'is_admin',
         'last_seen_at',
+        'avatar',
+        'username',
+        'notifications_enabled',
+        'two_factor_enabled',
+        'account_type',
     ];
 
     protected $hidden = [
@@ -34,6 +39,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'last_seen_at' => 'datetime',
+            'notifications_enabled' => 'boolean',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

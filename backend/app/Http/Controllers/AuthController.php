@@ -72,11 +72,57 @@ class AuthController extends Controller
         $request->validate([
             'name'   => ['string', 'max:255'],
             'bio'    => ['nullable', 'string', 'max:500'],
-            'avatar' => ['nullable', 'string', 'url'],
+            'username' => ['nullable', 'string', 'max:255', 'unique:users,username,' . $request->user()->id],
+            'avatar' => ['nullable', 'image', 'max:2048'], // Allow image files up to 2MB
         ]);
 
         $user = $request->user();
-        $user->update($request->only('name', 'bio', 'avatar'));
+        $data = $request->only('name', 'bio', 'username');
+
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if it exists
+            if ($user->avatar && file_exists(public_path($user->avatar))) {
+                unlink(public_path($user->avatar));
+            }
+            // Store new avatar
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $data['avatar'] = 'storage/' . $path;
+        }
+
+        $user->update($data);
+
+        return response()->json($user);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => ['required', 'string'],
+            'new_password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 401);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return response()->json(['message' => 'Password updated successfully']);
+    }
+
+    public function togglePreferences(Request $request)
+    {
+        $request->validate([
+            'notifications_enabled' => ['nullable', 'boolean'],
+            'two_factor_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $user = $request->user();
+        $user->update($request->only(['notifications_enabled', 'two_factor_enabled']));
 
         return response()->json($user);
     }

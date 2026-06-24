@@ -4,12 +4,12 @@ import { useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import Dashboard from './components/Dashboard'
-import OuinoChat from './components/OuinoChat'
+import PremiumSettingsDashboard from './components/PremiumSettingsDashboard'
 
 function App() {
   const { user, loading } = useAuth()
   const [view, setView] = React.useState('login')
-  const [showOuinoChat, setShowOuinoChat] = React.useState(false)
+  const [showSettingsDashboard, setShowSettingsDashboard] = React.useState(false)
 
   if (loading) {
     return (
@@ -19,24 +19,12 @@ function App() {
     )
   }
 
-  if (showOuinoChat) {
-    return <OuinoChat />
+  if (showSettingsDashboard) {
+    return <PremiumSettingsDashboard onBack={() => setShowSettingsDashboard(false)} />
   }
 
   if (user) {
-    return (
-      <div>
-        <div className="fixed top-4 right-4 z-50">
-          <button
-            onClick={() => setShowOuinoChat(!showOuinoChat)}
-            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Test OuinoChat
-          </button>
-        </div>
-        <Dashboard />
-      </div>
-    )
+    return <Dashboard onOpenSettings={() => setShowSettingsDashboard(true)} />
   }
 
   return (
