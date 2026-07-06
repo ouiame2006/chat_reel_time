@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   axios.defaults.baseURL = 'http://127.0.0.1:8000';
   axios.defaults.withCredentials = true;
   axios.defaults.headers.common['Accept'] = 'application/json';
-  axios.defaults.headers.common['Content-Type'] = 'application/json';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
