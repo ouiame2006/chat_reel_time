@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   Settings,
@@ -10,11 +10,15 @@ import {
   Camera,
   Save,
   LogOut,
-  X
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PremiumSettingsDashboard = ({ onBack }) => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const fileInputRef = useRef(null);
 
   // Form state with real user data
@@ -24,9 +28,26 @@ const PremiumSettingsDashboard = ({ onBack }) => {
     email: user?.email || '',
     bio: user?.bio || ''
   });
-
-  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [profilePhoto, setProfilePhoto] = useState(
+    user?.avatar ? `http://127.0.0.1:8000/${user.avatar}` : null
+  );
   const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: user.name || '',
+        username: user.username || '',
+        email: user.email || '',
+        bio: user.bio || ''
+      });
+      setProfilePhoto(user.avatar ? `http://127.0.0.1:8000/${user.avatar}` : null);
+    }
+  }, [user]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -53,9 +74,11 @@ const PremiumSettingsDashboard = ({ onBack }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        alert('File size must be less than 2MB');
+        setStatus({ type: 'error', message: 'File size must be less than 2MB' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 3000);
         return;
       }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setProfilePhoto(e.target.result);
@@ -70,30 +93,37 @@ const PremiumSettingsDashboard = ({ onBack }) => {
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
     }
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   // Handle save changes
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
       return;
     }
 
-    // Log form state
-    console.log('Saving profile data:', {
-      ...formData,
-      profilePhoto
-    });
-    // Simulate API call
-    alert('Profile saved successfully!');
+    setLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.fullName.trim());
+      if (formData.username) formDataToSend.append('username', formData.username.trim());
+      if (formData.bio) formDataToSend.append('bio', formData.bio.trim());
+      if (selectedFile) formDataToSend.append('avatar', selectedFile);
+
+      await updateProfile(formDataToSend);
+      setStatus({ type: 'success', message: 'Profile saved successfully!' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setStatus({ type: 'error', message: 'Failed to update profile. Please try again.' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -182,6 +212,25 @@ const PremiumSettingsDashboard = ({ onBack }) => {
               <h2 className="text-xl font-bold text-slate-800">Profile Information</h2>
               <p className="text-slate-400 text-sm mt-1">Update your personal details and profile photo</p>
             </div>
+
+            {/* Status Notification */}
+            <AnimatePresence>
+              {status.message && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
+                    status.type === 'success'
+                      ? 'bg-green-50 text-green-700 border border-green-100'
+                      : 'bg-red-50 text-red-700 border border-red-100'
+                  }`}
+                >
+                  {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                  <span className="text-sm font-medium">{status.message}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
               <form onSubmit={handleSave} className="space-y-8">
@@ -297,16 +346,27 @@ const PremiumSettingsDashboard = ({ onBack }) => {
                   <button
                     type="button"
                     onClick={onBack}
-                    className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-all"
+                    disabled={loading}
+                    className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white font-semibold rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/25 transition-all flex items-center gap-2"
+                    disabled={loading}
+                    className="px-8 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white font-semibold rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/25 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    <Save size={18} strokeWidth={1.75} />
-                    Save Changes
+                    {loading ? (
+                      <>
+                        <Loader2 size={18} strokeWidth={1.75} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} strokeWidth={1.75} />
+                        Save Changes
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
