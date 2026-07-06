@@ -15,16 +15,19 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* Premium Chat Variables */
-  --primary: #ec4899;
-  --primary-glow: rgba(236, 72, 153, 0.2);
-  --bg-deep: #0f172a;
-  --bg-card: #1e293b;
-  --bg-input: #334155;
-  --border: #334155;
-  --text-bright: #f1f5f9;
+  --primary: #d4af37; /* Gold */
+  --primary-glow: rgba(212, 175, 55, 0.2);
+  --secondary: #f472b6; /* Soft Pink */
+  --secondary-glow: rgba(244, 114, 182, 0.2);
+  --bg-deep: #0a1628; /* Navy Blue */
+  --bg-card: #12223b;
+  --bg-input: #1a304c;
+  --border: #2a4365;
+  --text-bright: #f8fafc;
   --text-muted: #94a3b8;
-  --success: #10b981;
+  --success: #22c55e;
   --error: #ef4444;
+  --warning: #f59e0b;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
@@ -221,4 +224,15 @@ input:focus {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

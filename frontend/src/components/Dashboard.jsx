@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   MessageSquare, Users, BookOpen, Settings, LogOut,
   Search, Plus, X, Check, Clock, UserPlus,
   ChevronLeft, ChevronRight, Image,
   Smile, Phone, Video as VideoIcon, MoreVertical,
-  Shield, Mail, Calendar, Send, Mic, Paperclip, Trash2, Bell,
+  Shield, Mail, Calendar, Send, Mic, Paperclip, Trash2, Bell, Crown,
 } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -846,6 +847,7 @@ function UserCard({ user, invStatus, pendingReceived, onSendInvite, onAccept, on
 // ── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 export default function Dashboard({ onOpenSettings }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('directory');
 
   const [allUsers, setAllUsers] = useState([]);
@@ -1441,6 +1443,7 @@ export default function Dashboard({ onOpenSettings }) {
             { id:'chats',     Icon: MessageSquare, label:'Chats',     badge: totalUnread },
             { id:'directory', Icon: Users,         label:'Directory', badge: pendingReceived.length },
             { id:'stories',   Icon: BookOpen,      label:'Stories' },
+            { id:'admin',     Icon: Crown,         label:'Admin Panel', action: () => navigate('/admin') },
             { id:'settings',  Icon: Settings,      label:'Settings', action: onOpenSettings },
           ].map(({ id, Icon, label, badge, action }) => (
             <button key={id} title={label} onClick={() => { 
@@ -1453,11 +1456,24 @@ export default function Dashboard({ onOpenSettings }) {
               style={{
                 position:'relative', width:42, height:42, borderRadius:10,
                 border:'none', cursor:'pointer',
-                background: activeTab===id ? (id === 'settings' ? '#e0f2fe' : '#fdf2f4') : 'transparent',
-                color: activeTab===id ? (id === 'settings' ? '#1e3a8a' : '#db7b9b') : '#9ca3af',
+                background: activeTab===id ? (id === 'settings' ? '#e0f2fe' : id === 'admin' ? '#e0f2fe' : '#fdf2f4') : 'transparent',
+                color: activeTab===id ? (id === 'settings' || id === 'admin' ? '#1e3a8a' : '#db7b9b') : '#9ca3af',
                 display:'flex', alignItems:'center', justifyContent:'center',
                 transition:'all 0.15s',
-              }}>
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== id) {
+                  e.currentTarget.style.background = id === 'admin' ? '#e0f2fe' : '#fdf2f4';
+                  e.currentTarget.style.color = id === 'admin' ? '#1e3a8a' : '#db7b9b';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== id) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#9ca3af';
+                }
+              }}
+            >
               <Icon size={19} />
               {badge > 0 && (
                 <span style={{

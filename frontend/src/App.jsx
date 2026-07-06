@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import Dashboard from './components/Dashboard'
+import AdminDashboard from './components/AdminDashboard'
 import SettingsLayout from './components/settings/SettingsLayout'
 import MyProfile from './components/settings/MyProfile'
 import AccountSecurity from './components/settings/AccountSecurity'
@@ -40,6 +41,10 @@ function App() {
           element={user ? <DashboardWrapper /> : <Navigate to="/login" replace />} 
         />
         <Route 
+          path="/admin" 
+          element={user ? <AdminDashboardWrapper /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
           path="/settings" 
           element={user ? <SettingsLayout /> : <Navigate to="/login" replace />} 
         >
@@ -69,6 +74,11 @@ function AuthWrapper({ type }) {
 function DashboardWrapper() {
   const navigate = useNavigate();
   return <Dashboard onOpenSettings={() => navigate('/settings')} />;
+}
+
+function AdminDashboardWrapper() {
+  const navigate = useNavigate();
+  return <AdminDashboard onBackToApp={() => navigate('/')} onLogout={() => navigate('/login')} />;
 }
 
 export default App
