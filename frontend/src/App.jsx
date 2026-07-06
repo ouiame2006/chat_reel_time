@@ -4,12 +4,14 @@ import { useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import Dashboard from './components/Dashboard'
-import PremiumSettingsDashboard from './components/PremiumSettingsDashboard'
+import SettingsLayout from './components/settings/SettingsLayout'
+import MyProfile from './components/settings/MyProfile'
+import AccountSecurity from './components/settings/AccountSecurity'
+import AppPreferences from './components/settings/AppPreferences'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 
 function App() {
   const { user, loading } = useAuth()
-  const [view, setView] = React.useState('login')
-  const [showSettingsDashboard, setShowSettingsDashboard] = React.useState(false)
 
   if (loading) {
     return (
@@ -19,23 +21,54 @@ function App() {
     )
   }
 
-  if (showSettingsDashboard) {
-    return <PremiumSettingsDashboard onBack={() => setShowSettingsDashboard(false)} />
-  }
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Auth Routes */}
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/" replace /> : <AuthWrapper type="login" />} 
+        />
+        <Route 
+          path="/signup" 
+          element={user ? <Navigate to="/" replace /> : <AuthWrapper type="signup" />} 
+        />
 
-  if (user) {
-    return <Dashboard onOpenSettings={() => setShowSettingsDashboard(true)} />
-  }
+        {/* Protected Routes */}
+        <Route 
+          path="/" 
+          element={user ? <DashboardWrapper /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/settings" 
+          element={user ? <SettingsLayout /> : <Navigate to="/login" replace />} 
+        >
+          <Route index element={<Navigate to="profile" replace />} />
+          <Route path="profile" element={<MyProfile />} />
+          <Route path="security" element={<AccountSecurity />} />
+          <Route path="preferences" element={<AppPreferences />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
 
+function AuthWrapper({ type }) {
+  const navigate = useNavigate();
   return (
     <div className="w-full h-screen">
-      {view === 'login' ? (
-        <Login setView={setView} />
+      {type === 'login' ? (
+        <Login setView={(v) => navigate(v === 'login' ? '/login' : '/signup')} />
       ) : (
-        <Signup setView={setView} />
+        <Signup setView={(v) => navigate(v === 'login' ? '/login' : '/signup')} />
       )}
     </div>
-  )
+  );
+}
+
+function DashboardWrapper() {
+  const navigate = useNavigate();
+  return <Dashboard onOpenSettings={() => navigate('/settings')} />;
 }
 
 export default App
